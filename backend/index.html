@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Postman + Fetch — Master every HTTP method</title>
+    <style>
+      /* minimal styling only: font, padding, flexbox, black */
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: #000;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 32px 20px;
+        line-height: 1.5;
+      }
+      h1 { font-size: 34px; }
+      h2 { font-size: 22px; margin-top: 40px; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 8px 0; }
+      input { padding: 8px; font-size: 15px; }
+      button { padding: 10px 16px; font-size: 15px; font-weight: 600; cursor: pointer; }
+      pre {
+        background: #000;
+        color: #fff;
+        padding: 14px;
+        overflow-x: auto;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+      code { background: #eee; padding: 2px 5px; }
+      .card { padding: 14px 0; border-top: 2px solid #000; }
+      .hint { font-size: 14px; color: #333; }
+    </style>
+  </head>
+  <body>
+    <h1>Postman + Fetch playground</h1>
+    <p class="hint">
+      Backend: <code>http://localhost:5000</code>. Every button below runs a
+      <code>fetch()</code> to the Express server and prints the JSON response.
+      The exact <code>fetch</code> code for each one is shown so you can copy it
+      into your React projects. Try the same URLs in Postman too.
+    </p>
+
+    <!-- ===================== GET ALL ===================== -->
+    <div class="card">
+      <h2>1. GET — read all tasks</h2>
+      <p class="hint">
+        Optional query params: <code>?done=true</code> /
+        <code>?done=false</code> / <code>?search=postman</code>
+      </p>
+      <div class="row">
+        <input id="getQuery" placeholder="search text (optional)" />
+        <button onclick="getAll()">GET /api/tasks</button>
+      </div>
+    </div>
+
+    <!-- ===================== GET ONE ===================== -->
+    <div class="card">
+      <h2>2. GET — read one task (route param)</h2>
+      <div class="row">
+        <input id="getOneId" placeholder="id e.g. 1" />
+        <button onclick="getOne()">GET /api/tasks/:id</button>
+      </div>
+    </div>
+
+    <!-- ===================== POST ===================== -->
+    <div class="card">
+      <h2>3. POST — create a task (JSON body)</h2>
+      <div class="row">
+        <input id="postTitle" placeholder="title" />
+        <button onclick="createTask()">POST /api/tasks</button>
+      </div>
+    </div>
+
+    <!-- ===================== PUT ===================== -->
+    <div class="card">
+      <h2>4. PUT — replace a task (send ALL fields)</h2>
+      <div class="row">
+        <input id="putId" placeholder="id" />
+        <input id="putTitle" placeholder="new title" />
+        <button onclick="replaceTask()">PUT /api/tasks/:id</button>
+      </div>
+    </div>
+
+    <!-- ===================== PATCH ===================== -->
+    <div class="card">
+      <h2>5. PATCH — update part (toggle done)</h2>
+      <div class="row">
+        <input id="patchId" placeholder="id" />
+        <button onclick="markDone()">PATCH /api/tasks/:id</button>
+      </div>
+    </div>
+
+    <!-- ===================== DELETE ===================== -->
+    <div class="card">
+      <h2>6. DELETE — remove a task</h2>
+      <div class="row">
+        <input id="deleteId" placeholder="id" />
+        <button onclick="deleteTask()">DELETE /api/tasks/:id</button>
+      </div>
+    </div>
+
+    <h2>Response</h2>
+    <pre id="output">Click a button above…</pre>
+
+    <script>
+      // ------------------------------------------------------------
+      // ONE base URL. In React you'd usually keep this in a config.
+      const API = "http://localhost:5000/api";
+
+      // helper: pretty-print whatever the server returns
+      function show(data) {
+        document.getElementById("output").textContent = JSON.stringify(
+          data,
+          null,
+          2
+        );
+      }
+      function showError(err) {
+        document.getElementById("output").textContent = "ERROR: " + err.message;
+      }
+
+      // 1) GET ALL  — note how query params are added to the URL
+      async function getAll() {
+        const search = document.getElementById("getQuery").value;
+        const url = search
+          ? `${API}/tasks?search=${encodeURIComponent(search)}`
+          : `${API}/tasks`;
+        try {
+          const res = await fetch(url); // GET is the default method
+          const data = await res.json();
+          show(data);
+        } catch (err) {
+          showError(err);
+        }
+      }
+
+      // 2) GET ONE — the id goes into the URL path (route param)
+      async function getOne() {
+        const id = document.getElementById("getOneId").value;
+        try {
+          const res = await fetch(`${API}/tasks/${id}`);
+          show(await res.json());
+        } catch (err) {
+          showError(err);
+        }
+      }
+
+      // 3) POST — send a JSON body with method + headers
+      async function createTask() {
+        const title = document.getElementById("postTitle").value;
+        try {
+          const res = await fetch(`${API}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title }),
+          });
+          show(await res.json());
+        } catch (err) {
+          showError(err);
+        }
+      }
+
+      // 4) PUT — replace the whole object (send every field)
+      async function replaceTask() {
+        const id = document.getElementById("putId").value;
+        const title = document.getElementById("putTitle").value;
+        try {
+          const res = await fetch(`${API}/tasks/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, done: false }),
+          });
+          show(await res.json());
+        } catch (err) {
+          showError(err);
+        }
+      }
+
+      // 5) PATCH — change only the fields you send (here: done = true)
+      async function markDone() {
+        const id = document.getElementById("patchId").value;
+        try {
+          const res = await fetch(`${API}/tasks/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ done: true }),
+          });
+          show(await res.json());
+        } catch (err) {
+          showError(err);
+        }
+      }
+
+      // 6) DELETE — no body needed, just the method + id in the URL
+      async function deleteTask() {
+        const id = document.getElementById("deleteId").value;
+        try {
+          const res = await fetch(`${API}/tasks/${id}`, { method: "DELETE" });
+          show(await res.json());
+        } catch (err) {
+          showError(err);
+        }
+      }
+
+      // load the list on first open
+      getAll();
+    </script>
+  </body>
+</html>
